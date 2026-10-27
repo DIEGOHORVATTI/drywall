@@ -331,10 +331,10 @@ td.n,th.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabula
         </div>
       </div>
       <p class="mo-note">Mão de obra abaixo da referência de mercado para Santa Catarina</p>
-      <p class="store-note">Materiais com preço e link da Leroy Merlin</p>
+      <p class="store-note">Materiais com preço e link da Leroy Merlin e do Mercado Livre</p>
       <div id="rooms-sum"></div>
       <div id="mat-sum"></div>
-      <p class="fine">Estimativa com material da Leroy Merlin e mão de obra do instalador, sem pintura. O valor final é confirmado depois da medição no local.</p>
+      <p class="fine">Estimativa com material da Leroy Merlin e do Mercado Livre e mão de obra do instalador, sem pintura. O valor final é confirmado depois da medição no local.</p>
       <form class="form" id="cli" onsubmit="return false">
         <div><label class="lbl" for="c-nome">Seu nome</label><input class="txt" id="c-nome" autocomplete="name" placeholder="Ex.: Ana Souza"></div>
         <div><label class="lbl" for="c-unid">Bloco e apartamento</label><input class="txt" id="c-unid" placeholder="Ex.: Bloco 07 · Apto 302"></div>
@@ -394,7 +394,7 @@ const MAO_DE_OBRA = {
   manta:        {preco:15, media:24.00, un:'m²'}   // colocação da manta anti-ruído (referência estimada)
 };
 
-/* Materiais — Leroy Merlin.
+/* Materiais — Leroy Merlin. Item com `loja` (ex.: Mercado Livre) vem de outra loja, quando a Leroy não vende.
    preco: R$ por unidade de compra.
    real: true  = preço lido no site da Leroy em 26/10/2026 (região Grande SP).
    real: false = estimativa: o site mostra o item "sob encomenda"/"indisponível" e sem preço. Troque pelo valor da sua loja.
@@ -420,13 +420,16 @@ const ITENS = {
   fita:      {nome:'Fita de papel para juntas Placo (rolo 150 m)', preco:32, real:false, url:'https://www.leroymerlin.com.br/fita-de-papel-para-juntas-de-drywall-150m-placo_89800774', afiliado:''},
   ledFita:   {nome:'Fita LED Stella Eco 12 V 2700 K (rolo 5 m)', preco:65,  real:false, url:'https://www.leroymerlin.com.br/fita-led-profissional-stella-eco-5w-m-12v-ip20-5m-2700k-branco-quente_1570278410', afiliado:''},
   ledFonte:  {nome:'Fonte slim 12 V 5 A 60 W para LED', preco:37.45,         real:true,  url:'https://www.leroymerlin.com.br/fonte-slim-para-fita-led-12v-5a-60w-bivolt_1570172452', afiliado:''},
-  cantGesso: {nome:'Cantoneira de gesso / roda-teto (barra 1 m)', preco:15, real:false, url:'', afiliado:'', proprio:true},
+  cantGesso: {nome:'Cantoneira de gesso / roda-teto (barra 1 m)', preco:25, real:true, loja:'Mercado Livre', lido:'27/10/2026, sem frete', url:'https://produto.mercadolivre.com.br/MLB-6704014100-moldura-roda-teto-de-gesso-para-acabamento-interno-e-externo-_JM', afiliado:''},
   gessoCola: {nome:'Gesso cola Juntalider (saco 5 kg)', preco:22,           real:false, url:'https://www.leroymerlin.com.br/gesso-cola-5kg-juntalider_92141861', afiliado:''},
   moldura:   {nome:'Moldura boiserie Gart S3 20 mm (barra 2 m)', preco:24,  real:false, url:'https://www.leroymerlin.com.br/moldura-rodameio-boiserie-s3-20mm-com-1-peca-gart_87348982', afiliado:''},
   colaPU:    {nome:'Cola para moldura Santa Luzia (400 g)', preco:38.90,     real:true,  url:'https://www.leroymerlin.com.br/cola-para-moldura-400g-santa-luzia_88473616', afiliado:''}
 };
 /* ===== fim da configuração ===== */
 const linkDe = i => ITENS[i].afiliado || ITENS[i].url;
+const lojaDe = i => ITENS[i].loja || LOJA;
+const daLoja = i => (lojaDe(i)==='Mercado Livre' ? 'do ' : 'da ') + lojaDe(i);
+const naLoja = i => (lojaDe(i)==='Mercado Livre' ? 'no ' : 'na ') + lojaDe(i);
 const temAfiliado = () => Object.values(ITENS).some(x=>x.afiliado);
 
 const SERV = {
@@ -977,7 +980,7 @@ function mensagem(c){
     ls.forEach(l=>{ const d = detalhe(l.k,l.s); t += `• ${SERV[l.k].nome}: ${qtxt(l.k,l.s)}${d?' ('+d+')':''} · mão de obra ${fmtR(l.mo)}\n`; });
     const oc = ocupa(r); if(oc.length) t += `_Ocupa:_ ${oc.join(' ')}\n`;
   });
-  t += `\n*Material estimado (${LOJA})*\n`;
+  t += `\n*Material estimado (${[...new Set(c.itens.filter(x=>!ITENS[x.i].proprio).map(x=>lojaDe(x.i)))].join(' e ')})*\n`;
   c.itens.forEach(x=>{ const it=ITENS[x.i];
     t += `• ${x.qtd} × ${it.nome} = ${fmtR(x.sub)}${it.real?'':' (estimado)'}${it.proprio?' (fornecido pelo instalador)':''}\n`;
     if(!it.proprio && linkDe(x.i)) t += `  ${linkDe(x.i)}\n`; });
@@ -1015,11 +1018,11 @@ function renderSummary(){
     $('mat-sum').innerHTML = c.itens.length ? `<details class="mat" id="mat-det" ${matOpen?'open':''}><summary>Lista de material (${c.itens.length} itens)</summary>
       <div class="tbl"><table><thead><tr><th colspan="2">Material</th><th class="n">Qtd</th><th class="n">Valor</th></tr></thead><tbody>
       ${c.itens.map(x=>{ const it=ITENS[x.i];
-        const nome = `<button type="button" class="buy" data-mat="${x.i}">${esc(it.nome)}</button><span class="src">${it.proprio?'fornecido pelo instalador':it.real?'preço do site '+LOJA:'preço estimado · confira na loja'}</span>`;
+        const nome = `<button type="button" class="buy" data-mat="${x.i}">${esc(it.nome)}</button><span class="src">${it.proprio?'fornecido pelo instalador':it.real?'preço do site '+lojaDe(x.i):'preço estimado · confira na loja'}</span>`;
         return `<tr><td class="a"><button type="button" class="matbtn" data-mat="${x.i}" aria-label="Ver ${esc(it.nome)}">${thumb(x.i)}</button></td><td>${nome}</td><td class="n">${x.qtd}</td><td class="n">${fmtR(x.sub)}${it.real?'':'<sup>*</sup>'}</td></tr>`; }).join('')}
       </tbody></table></div>
-      <p class="fine" style="margin-top:8px">Quantidades arredondadas para a unidade de compra, já com perda de corte. Toque no material para ver o produto e o preço na ${LOJA}. Preços lidos no site em 26/10/2026 (região Grande SP) e podem mudar em Santa Catarina. <sup>*</sup> Estimado: item vendido sob encomenda ou só na loja física.</p>
-      ${temAfiliado()?`<p class="fine">Os links da ${LOJA} são de afiliado: o instalador pode receber uma comissão, sem custo extra para você.</p>`:''}</details>` : '';
+      <p class="fine" style="margin-top:8px">Quantidades arredondadas para a unidade de compra, já com perda de corte. Toque no material para ver o produto e o preço na loja. Preços lidos nos sites em 26 e 27/10/2026 (Leroy: região Grande SP) e podem mudar em Santa Catarina. <sup>*</sup> Estimado: item vendido sob encomenda ou só na loja física.</p>
+      ${temAfiliado()?`<p class="fine">Os links das lojas são de afiliado: o instalador pode receber uma comissão, sem custo extra para você.</p>`:''}</details>` : '';
   }
   ultimaMsg = mensagem(c);
   const wa = $('wa');
@@ -1054,14 +1057,14 @@ function abrirMaterial(i){
   const usos = [];
   c.linhas.forEach(l=>{ if(materiais(l.r,l.k,l.s,S.pe)[i]) usos.push(`${SERV[l.k].nome} · ${nomeDe(l.r)}`); });
   const fonte = it.proprio ? 'Material fornecido e cobrado pelo instalador.'
-    : it.real ? `Preço lido no site da ${LOJA} em 26/10/2026 (região Grande SP). Pode mudar em Santa Catarina.`
-    : `Preço estimado. No site da ${LOJA} este item aparece sob encomenda ou sem preço; confira na loja.`;
+    : it.real ? `Preço lido no site ${daLoja(i)} em ${it.lido||'26/10/2026 (região Grande SP)'}. Pode mudar em Santa Catarina.`
+    : `Preço estimado. No site ${daLoja(i)} este item aparece sob encomenda ou sem preço; confira na loja.`;
   $('bs-root').innerHTML = `<div class="bs-bg" data-bs-close></div>
   <div class="bs" role="dialog" aria-modal="true" aria-labelledby="bs-title">
     <div class="bs-grip" aria-hidden="true"></div>
     <div class="bs-head">
       ${thumb(i)}
-      <div><span class="bs-store">${it.proprio?'Instalador':LOJA}</span><h3 id="bs-title">${esc(it.nome)}</h3></div>
+      <div><span class="bs-store">${it.proprio?'Instalador':lojaDe(i)}</span><h3 id="bs-title">${esc(it.nome)}</h3></div>
       <button type="button" class="bs-close" data-bs-close aria-label="Fechar">×</button>
     </div>
     <div class="bs-price">
@@ -1073,8 +1076,8 @@ function abrirMaterial(i){
       ${item?`<div><span>Quantidade neste pedido</span><span>${item.qtd}</span></div><div><span>Subtotal</span><span>${fmtR(item.sub)}</span></div>`:''}
       ${usos.length?`<div><span>Usado em</span><span style="font-family:var(--f-body)">${usos.map(esc).join('<br>')}</span></div>`:''}
     </div>
-    ${it.proprio ? '' : `<a class="bs-go" href="${esc(linkDe(i))}" target="_blank" rel="noopener sponsored">Ver na ${LOJA} <span aria-hidden="true">↗</span></a>
-    <p class="bs-note">Abre a página do produto no site da ${LOJA}.${it.afiliado?' Link de afiliado: o instalador pode receber comissão, sem custo extra para você.':''}</p>`}
+    ${it.proprio ? '' : `<a class="bs-go" href="${esc(linkDe(i))}" target="_blank" rel="noopener sponsored">Ver ${naLoja(i)} <span aria-hidden="true">↗</span></a>
+    <p class="bs-note">Abre a página do produto no site ${daLoja(i)}.${it.afiliado?' Link de afiliado: o instalador pode receber comissão, sem custo extra para você.':''}</p>`}
   </div>`;
   const cl = document.querySelector('.bs-close'); if(cl) cl.focus();
 }
