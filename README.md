@@ -1,5 +1,3 @@
-# Horvatti Drywall
-
 Simulador de orçamento de drywall, sanca de gesso, cantoneiras e boiserie para o apartamento tipo do Flores de Bragança (MRV).
 
 - Site estático: um único `index.html`. Sem banco de dados; o rascunho fica salvo no navegador do cliente.
