@@ -17,3 +17,5 @@ No topo do `<script>` em `index.html`:
 ## Publicar na Vercel
 
 Conecte este repositório ao projeto `horvatti-drywall` na Vercel (Settings → Git). Framework: "Other", sem comando de build. Cada push na branch `main` publica de novo.
+
+Site no ar: https://horvatti-drywall.vercel.app
